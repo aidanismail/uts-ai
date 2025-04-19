@@ -73,34 +73,61 @@ def jalankan_simulasi(jumlah_peserta_total):
                 rumah_sakit_info.append({
                     "RS": rs,
                     "Pasien": jumlah_pasien,
-                    "Dokter_List": dokter_list.copy(),  # simpan list aslinya
+                    "Dokter_List": dokter_list.copy(),
+                    "Jumlah Dokter Awal": jumlah_dokter,  # Tambahkan ini
                     "Jumlah Dokter": jumlah_dokter,
-                    "Rasio": round(rasio, 2),
+                    "Rasio": round(jumlah_pasien / jumlah_dokter, 2),
                     "Under": round(u, 2),
                     "Normal": round(n, 2),
                     "Over": round(o, 2),
                     "Aksi": "Tetap"
                 })
 
-        # Step 2: Redistribusi dari yang under
+        # Step 2: Redistribusi dokter dari RS underutilized
         surplus_pool = []
+        rs_underutilized = []
+        rs_overutilized = sorted(
+            [info for info in rumah_sakit_info if info['Over'] > max(info['Normal'], info['Under'])],
+            key=lambda x: x['Over'],
+            reverse=True
+        )
+
         for info in rumah_sakit_info:
             if info['Under'] > max(info['Normal'], info['Over']):
                 if info['Jumlah Dokter'] > 1:
-                    dokter_diambil = info['Dokter_List'].pop()  # ambil 1 dokter terakhir
+                    dokter_diambil = info['Dokter_List'].pop()
                     surplus_pool.append(dokter_diambil)
                     info['Jumlah Dokter'] -= 1
                     info['Aksi'] = "Kurangi dokter"
+                    rs_underutilized.append(info['RS'])
                 else:
                     info['Aksi'] = "Tetap (tidak bisa dikurangi)"
+            elif info['Over'] > max(info['Normal'], info['Under']):
+                rs_overutilized.append(info['RS'])
 
-        # Step 3: Tambahkan ke RS yang overutilized
+        # Step 3: Distribusi ke RS overutilized (jika ada dokter sisa)
         for info in rumah_sakit_info:
-            if info['Over'] > max(info['Normal'], info['Under']) and surplus_pool:
-                dokter_diberikan = surplus_pool.pop()
+            if info['RS'] in rs_overutilized and surplus_pool:
+                dokter_diberikan = surplus_pool.pop(0)
                 info['Dokter_List'].append(dokter_diberikan)
                 info['Jumlah Dokter'] += 1
                 info['Aksi'] = "Tambah dokter (dari surplus)"
+
+        # Step 3.5: Jika masih ada surplus, berikan ke RS dengan rasio tertinggi
+        if surplus_pool:
+            # Urutkan berdasarkan rasio tertinggi (yang belum menerima dokter tambahan)
+            calon_rs = sorted(
+                [info for info in rumah_sakit_info if info['Aksi'] == "Tetap"],
+                key=lambda x: x['Rasio'],
+                reverse=True
+            )
+
+            for info in calon_rs:
+                if surplus_pool:
+                    dokter_diberikan = surplus_pool.pop(0)
+                    info['Dokter_List'].append(dokter_diberikan)
+                    info['Jumlah Dokter'] += 1
+                    info['Aksi'] = "Tambah dokter (rasio tertinggi)"
 
         # Step 4: Hitung ulang rasio dan format dokter untuk display
         for info in rumah_sakit_info:
