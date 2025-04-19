@@ -1,16 +1,46 @@
 <!DOCTYPE html>
-<html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Simulasi Penjadwalan AI</title>
-  </head>
-  <body>
-    <h1>Simulasi Penempatan Peserta Didik (AI + Fuzzy Logic)</h1>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fuzzy Dokter Scheduler</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f7f7f7; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 50px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #eee; }
+        h2 { margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <h1>Fuzzy Dokter Scheduler</h1>
 
-    <form action="/jadwal" method="POST">
-      <label for="jumlah">Jumlah Total Peserta Didik:</label>
-      <input type="number" id="jumlah" name="jumlah_peserta" min="1" required />
-      <button type="submit">Jalankan Simulasi</button>
-    </form>
-  </body>
+    {% for tanggal, data in hasil.items() %}
+    <h2>Hasil untuk Tanggal: {{ tanggal }}</h2>
+    <table border="1" cellpadding="5">
+        <thead>
+            <tr>
+                <th>RS</th><th>Pasien</th><th>Jumlah Dokter</th><th>Dokter</th>
+                <th>Rasio</th><th>Under</th><th>Normal</th><th>Over</th>
+                <th>Aksi</th><th>Rasio Baru</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td>{{ row['RS'] }}</td>
+                <td>{{ row['Pasien'] }}</td>
+                <td>{{ row['Jumlah Dokter'] }}</td>
+                <td>{{ row['Dokter'] }}</td>
+                <td>{{ row['Rasio'] }}</td>
+                <td>{{ row['Under'] }}</td>
+                <td>{{ row['Normal'] }}</td>
+                <td>{{ row['Over'] }}</td>
+                <td>{{ row['Aksi'] }}</td>
+                <td>{{ row['Rasio Baru'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endfor %}    
+</body>
 </html>

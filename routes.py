@@ -7,7 +7,8 @@ routes = Blueprint('routes', __name__)
 
 @routes.route('/')
 def index():
-    return render_template('index.html')
+    hasil_simulasi = jalankan_simulasi(jumlah_peserta_total=35)  # or any default number
+    return render_template('index.html', hasil=hasil_simulasi)
 
 @routes.route('/jadwal', methods=['POST'])
 def jadwal():

@@ -1,0 +1,11 @@
+No,Jenis Wahana,Nama Wahana,Jenis Penyakit,Kapasitas Peserta Optimal,Estimasi Pasien Optimal
+1,Rumah Sakit,Rumah Sakit A,-,3,30
+2,Rumah Sakit,Rumah Sakit B,-,4,40
+3,Rumah Sakit,Rumah Sakit C,-,3,50
+4,Rumah Sakit,Rumah Sakit D,-,2,20
+5,Rumah Sakit,Rumah Sakit E,-,1,15
+6,Rumah Sakit,Rumah Sakit F,-,4,45
+7,Klinik,Klinik A,-,2,25
+8,Klinik,Klinik B,-,5,55
+9,Klinik,Klinik C,-,4,45
+10,Klinik,Klinik D,-,2,20
