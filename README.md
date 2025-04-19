@@ -14,20 +14,19 @@ Aplikasi web berbasis Flask untuk mensimulasikan penjadwalan adaptif dokter di b
 - Fitur dropdown interaktif untuk memilih tanggal tertentu.
 
 ## Struktur Proyek
-
-uts-ai/ 
-├── app.py 
-├── data/ 
-│ ├── Data Dummy Peserta.csv 
-│ ├── Data Dummy Wahana.csv 
-│ └── Jumlah Pasien.csv
-├── static/ 
-│ └── (opsional file CSS)
-├── templates/ 
-│ └── index.html  
-├── routes.py 
-├── scheduler.py 
-└── README.md
+uts-ai/
+├── app.py
+├── routes.py
+├── scheduler.py
+├── README.md
+├── data/
+│   ├── Data Dummy Peserta.csv
+│   ├── Data Dummy Wahana.csv
+│   └── Jumlah Pasien.csv
+├── templates/
+│   └── index.html
+└── static/
+    └── (opsional file CSS)
 
 ## Deskripsi Dataset
 
