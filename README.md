@@ -45,7 +45,6 @@ uts-ai/
 ## 🚀 Cara Menjalankan
 
 ### 1. Clone & Install Dependency
-
     ```bash
     git clone https://github.com/namakamu/uts-ai.git
     cd uts-ai

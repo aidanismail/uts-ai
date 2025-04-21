@@ -1,27 +1,7 @@
 # app/scheduler.py
 
 import pandas as pd
-
-def underutilized(x):
-    if x <= 3:
-        return 1
-    elif 3 < x < 5:
-        return (5 - x) / 2
-    return 0
-
-def normal(x):
-    if 5 < x < 10:
-        return (x - 5) / 5
-    elif 10 <= x <= 20:
-        return (20 - x) / 10
-    return 0
-
-def overutilized(x):
-    if 20 < x < 25:
-        return (x - 20) / 5
-    elif x >= 25:
-        return 1
-    return 0
+from fuzzy_logic import fuzzifikasi
 
 def jalankan_simulasi(jumlah_peserta_total):
     peserta_df = pd.read_csv("data/Data Dummy Peserta.csv")
@@ -66,34 +46,37 @@ def jalankan_simulasi(jumlah_peserta_total):
                 jumlah_pasien = data_harian[rs]['jumlah_pasien']
                 rasio = jumlah_pasien / jumlah_dokter if jumlah_dokter > 0 else 0
 
-                u = underutilized(rasio)
-                n = normal(rasio)
-                o = overutilized(rasio)
+            μ = fuzzifikasi(rasio)
 
-                rumah_sakit_info.append({
-                    "RS": rs,
-                    "Pasien": jumlah_pasien,
-                    "Dokter_List": dokter_list.copy(),
-                    "Jumlah Dokter Awal": jumlah_dokter,  # Tambahkan ini
-                    "Jumlah Dokter": jumlah_dokter,
-                    "Rasio": round(jumlah_pasien / jumlah_dokter, 2),
-                    "Under": round(u, 2),
-                    "Normal": round(n, 2),
-                    "Over": round(o, 2),
-                    "Aksi": "Tetap"
-                })
+            rumah_sakit_info.append({
+                "RS": rs,
+                "Pasien": jumlah_pasien,
+                "Dokter_List": dokter_list.copy(),
+                "Jumlah Dokter Awal": jumlah_dokter, 
+                "Jumlah Dokter": jumlah_dokter,
+                "Rasio": round(rasio, 2),
+
+                # New fuzzy values
+                "Under Berat": round(μ["Underutilized Berat"], 2),
+                "Under Ringan": round(μ["Underutilized Ringan"], 2),
+                "Optimal": round(μ["Optimal"], 2),
+                "Over Ringan": round(μ["Overload Ringan"], 2),
+                "Over Berat": round(μ["Overload Berat"], 2),
+
+                "Aksi": "Tetap"
+            })
 
         # Step 2: Redistribusi dokter dari RS underutilized
         surplus_pool = []
         rs_underutilized = []
         rs_overutilized = sorted(
-            [info for info in rumah_sakit_info if info['Over'] > max(info['Normal'], info['Under'])],
-            key=lambda x: x['Over'],
+            [info for info in rumah_sakit_info if (info['Over Berat'] + info['Over Ringan']) > max(info['Optimal'], info['Under Berat'], info['Under Ringan'])],
+            key=lambda x: x['Over Berat'] + x['Over Ringan'],
             reverse=True
         )
 
         for info in rumah_sakit_info:
-            if info['Under'] > max(info['Normal'], info['Over']):
+            if (info['Under Berat'] + info['Under Ringan']) > max(info['Optimal'], info['Over Ringan'], info['Over Berat']):
                 if info['Jumlah Dokter'] > 1:
                     dokter_diambil = info['Dokter_List'].pop()
                     surplus_pool.append(dokter_diambil)
@@ -102,7 +85,7 @@ def jalankan_simulasi(jumlah_peserta_total):
                     rs_underutilized.append(info['RS'])
                 else:
                     info['Aksi'] = "Tetap (tidak bisa dikurangi)"
-            elif info['Over'] > max(info['Normal'], info['Under']):
+            elif (info['Over Ringan'] + info['Over Berat']) > max(info['Optimal'], info['Under Berat'], info['Under Ringan']):
                 rs_overutilized.append(info['RS'])
 
         # Step 3: Distribusi ke RS overutilized (jika ada dokter sisa)

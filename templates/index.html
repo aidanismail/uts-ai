@@ -52,27 +52,33 @@
                     <th>Pasien</th>
                     <th>Jumlah Dokter Awal</th>
                     <th>Rasio</th>
-                    <th>Under</th>
-                    <th>Normal</th>
-                    <th>Over</th>
                     <th>Aksi</th>
+                    <th>Fuzzy State Dominan</th>
                 </tr>
-            </thead>
-            <tbody>
-                {% for row in data.jadwal %}
-                <tr>
-                    <td>{{ row['RS'] }}</td>
-                    <td>{{ row['Pasien'] }}</td>
-                    <td>{{ row['Jumlah Dokter Awal'] }}</td>
-                    <td>{{ row['Rasio'] }}</td>
-                    <td>{{ row['Under'] }}</td>
-                    <td>{{ row['Normal'] }}</td>
-                    <td>{{ row['Over'] }}</td>
-                    <td>{{ row['Aksi'] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for row in data.jadwal %}
+                    <tr>
+                        <td>{{ row['RS'] }}</td>
+                        <td>{{ row['Pasien'] }}</td>
+                        <td>{{ row['Jumlah Dokter Awal'] }}</td>
+                        <td>{{ row['Rasio'] }}</td>
+                        <td>{{ row['Aksi'] }}</td>
+                        <td>
+                            {% set states = {
+                                'Underutilized Berat': row['Under Berat'],
+                                'Underutilized Ringan': row['Under Ringan'],
+                                'Optimal': row['Optimal'],
+                                'Overload Ringan': row['Over Ringan'],
+                                'Overload Berat': row['Over Berat']
+                            } %}
+                            {% set max_state = states|dictsort(by='value')|last %}
+                            {{ max_state[0] }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+</table>
 
         <!-- Tabel Distribusi Dokter Akhir -->
         <h4>Distribusi Dokter per RS (Setelah Reposisi)</h4>
@@ -96,7 +102,19 @@
                 {% endfor %}
             </tbody>
         </table>
+        <h4>Detail Fuzzy State per RS</h4>
+        {% for info in data.jadwal %}
+            <h5>{{ info['RS'] }}</h5>
+            <table class="table-distribusi">
+                <tr><td><strong>Underutilized Berat</strong></td><td>{{ info['Under Berat'] }}</td></tr>
+                <tr><td><strong>Underutilized Ringan</strong></td><td>{{ info['Under Ringan'] }}</td></tr>
+                <tr><td><strong>Optimal</strong></td><td>{{ info['Optimal'] }}</td></tr>
+                <tr><td><strong>Overload Ringan</strong></td><td>{{ info['Over Ringan'] }}</td></tr>
+                <tr><td><strong>Overload Berat</strong></td><td>{{ info['Over Berat'] }}</td></tr>
+            </table>
+        {% endfor %}
         <hr>
+
     </div>
     {% endfor %}
 
