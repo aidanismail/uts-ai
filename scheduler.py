@@ -28,9 +28,20 @@ def jalankan_simulasi(jumlah_peserta_total):
     set_rs = sorted({rs for wahana in data_pasien.values() for rs in wahana})
     jumlah_rs = len(set_rs)
 
+    ### SEARCHING FOR RS ###
+    # Hitung total pasien per RS untuk semua tanggal
+    total_pasien = {rs: 0 for rs in set_rs}
+    for data_harian in data_pasien.values():
+        for rs in data_harian:
+            total_pasien[rs] += data_harian[rs]['jumlah_pasien']
+
+    # Urutkan RS berdasarkan total pasien (desc)
+    rs_sorted_by_pasien = sorted(set_rs, key=lambda rs: total_pasien[rs], reverse=True)
+
+    # Distribusikan dokter berdasarkan urutan RS yang paling sibuk
     rs_to_dokter = {rs: [] for rs in set_rs}
     for i, (id_d, nama_d) in enumerate(list_dokter):
-        rs = set_rs[i % jumlah_rs]
+        rs = rs_sorted_by_pasien[i % jumlah_rs]
         rs_to_dokter[rs].append({'ID': id_d, 'Nama': nama_d})
 
     hasil_per_tanggal = {}
