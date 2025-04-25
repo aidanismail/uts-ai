@@ -32,9 +32,13 @@ if st.button("💾 Simpan Perubahan"):
     edited_df.to_csv(file_to_edit, index=False)
     st.success(f"Perubahan pada `{os.path.basename(file_to_edit)}` berhasil disimpan.")
 
+rs_df = pd.read_csv("data/Data Dummy Wahana.csv")
+rs_list = list(rs_df["Nama Wahana"])
+rs_tutup = st.selectbox("Pilih Rumah Sakit yang Ditutup (Opsional)", ["Tidak ada"] + rs_list)
+
 # Input jumlah peserta
 jumlah_peserta = st.number_input("Jumlah Total Peserta", min_value=1, max_value=100, value=35)
-hasil_simulasi = jalankan_simulasi(jumlah_peserta)
+hasil_simulasi, dokter_to_spesialisasi, rs_to_spesialisasi, data_peserta = jalankan_simulasi(jumlah_peserta, rs_tutup)
 
 # Pilih tanggal
 tanggal_list = list(hasil_simulasi.keys())
@@ -92,3 +96,21 @@ if selected_tanggal:
                     row["Over Berat"]
                 ]
             }))
+
+    st.markdown("## 🧠 Tabel Spesialisasi Dokter")
+
+    semua_spesialisasi = set(rs_to_spesialisasi.values())
+
+    tabel_data = []
+    for id_d, sudah_dikerjakan in dokter_to_spesialisasi.items():
+        belum_dikerjakan = semua_spesialisasi - sudah_dikerjakan
+        tabel_data.append({
+            "ID Dokter": id_d,
+            "Nama": data_peserta[id_d],
+            "Spesialisasi Dikerjakan": ', '.join(sorted(sudah_dikerjakan)),
+            "Belum Dikerjakan": ', '.join(sorted(belum_dikerjakan))
+        })
+
+    df_spesialisasi = pd.DataFrame(data["rekap_spesialisasi"])
+    st.dataframe(df_spesialisasi)
+
