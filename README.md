@@ -2,6 +2,14 @@
 
 Aplikasi web berbasis Flask untuk mensimulasikan penjadwalan adaptif dokter di berbagai rumah sakit dan klinik menggunakan logika fuzzy berdasarkan jumlah pasien harian.
 
+## Update Ver 1.0.0
+- Ubah tampilan ke streamlit, jadi semua hal yang berhubungan flask diganti
+- Searching awal untuk RS diterapkan algoritma Greedy, berbeda dengan sebelumnya yang memakai pembagian Round Robin biasa.
+
+### What to do next?
+- Implementasi penyakit setiap peserta.
+- Implementasi Planning explisit dalam code.
+
 ## Fitur Utama
 
 - Menghitung rasio pasien per dokter di tiap wahana (klinik/rumah sakit).
