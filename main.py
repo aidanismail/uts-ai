@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
 from scheduler import jalankan_simulasi
+import plotly.express as px
 import os
-import sys
 import shutil
 
+# Set page config
 st.set_page_config(page_title="Fuzzy Dokter Scheduler", layout="wide")
 
 st.title("🩺 Fuzzy Dokter Scheduler")
@@ -15,12 +16,6 @@ file_to_edit = st.selectbox("Pilih file yang ingin diedit:", [
     "data/Data Dummy Wahana.csv",
     "data/Jumlah Pasien.csv"
 ])
-
-if st.button("💾 Simpan Perubahan", key=f"simpan_{file_to_edit}"):
-    backup_file = file_to_edit + ".bak"
-    shutil.copy(file_to_edit, backup_file)  # create a backup
-    edited_df.to_csv(file_to_edit, index=False)
-    st.success(f"Data berhasil disimpan dan backup dibuat di `{os.path.basename(backup_file)}`")
 
 # Load CSV
 df_edit = pd.read_csv(file_to_edit)
@@ -37,7 +32,9 @@ rs_list = list(rs_df["Nama Wahana"])
 rs_tutup = st.selectbox("Pilih Rumah Sakit yang Ditutup (Opsional)", ["Tidak ada"] + rs_list)
 
 # Input jumlah peserta
-jumlah_peserta = st.number_input("Jumlah Total Peserta", min_value=1, max_value=100, value=35)
+peserta_df = pd.read_csv("data/Data Dummy Peserta.csv")
+jumlah_peserta = len(peserta_df)
+
 hasil_simulasi, dokter_to_spesialisasi, rs_to_spesialisasi, data_peserta = jalankan_simulasi(jumlah_peserta, rs_tutup)
 
 # Pilih tanggal
@@ -48,8 +45,38 @@ if selected_tanggal:
     data = hasil_simulasi[selected_tanggal]
 
     st.subheader(f"Hasil untuk Tanggal: {selected_tanggal}")
+
+    # Create two columns to display charts horizontally
+    col1, col2 = st.columns(2)
+
+    # 1. Grafik Rasio Dokter dan Pasien (Penjadwalan Awal) - Tampil di kolom pertama
+    with col1:
+        st.markdown("### 📊 Grafik Rasio Dokter dan Pasien - Penjadwalan Awal")
+        rasio_data = [
+            {"RS": row["RS"], "Rasio": row["Rasio"]} for row in data["jadwal"]
+        ]
+        rasio_df = pd.DataFrame(rasio_data)
     
-    # Tabel Penjadwalan
+        # Create the bar chart where X axis is RS, and Y axis is Rasio
+        fig1 = px.bar(rasio_df, x="RS", y="Rasio", 
+                      title="Rasio Dokter dan Pasien - Penjadwalan Awal", labels={"Rasio": "Rasio Pasien/Dokter"})
+        st.plotly_chart(fig1)
+
+    # 2. Grafik Rasio Dokter dan Pasien (Setelah Redistribusi) - Tampil di kolom kedua
+    with col2:
+        st.markdown("### 📊 Grafik Rasio Dokter dan Pasien - Setelah Redistribusi")
+        rasio_data_akhir = [
+            {"RS": row["RS"], "Rasio Baru": row["Rasio Baru"]} for row in data["jadwal"]
+        ]
+        rasio_df_akhir = pd.DataFrame(rasio_data_akhir)
+    
+        # Create the bar chart where X axis is RS, and Y axis is Rasio Baru
+        fig2 = px.bar(rasio_df_akhir, x="RS", y="Rasio Baru", 
+                  title="Rasio Dokter dan Pasien - Setelah Redistribusi", labels={"Rasio Baru": "Rasio Pasien/Dokter"})
+        st.plotly_chart(fig2)
+
+
+    # Tabel Penjadwalan Awal
     st.markdown("### 📋 Tabel Fuzzy Penjadwalan")
     st.dataframe(pd.DataFrame([{
         "RS": row["RS"],
@@ -113,4 +140,3 @@ if selected_tanggal:
 
     df_spesialisasi = pd.DataFrame(data["rekap_spesialisasi"])
     st.dataframe(df_spesialisasi)
-

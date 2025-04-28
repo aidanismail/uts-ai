@@ -1,6 +1,7 @@
 import pandas as pd
 from fuzzy_logic import fuzzifikasi
 
+
 def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
     peserta_df = pd.read_csv("data/Data Dummy Peserta.csv")
     wahana_df = pd.read_csv("data/Data Dummy Wahana.csv")
@@ -29,6 +30,7 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
     set_rs = sorted({rs for wahana in data_pasien.values() for rs in wahana})
     jumlah_rs = len(set_rs)
 
+    # Jika rumah sakit ditutup, redistribusikan pasien
     if rs_tutup and rs_tutup != "Tidak ada":
         if rs_tutup in set_rs:
             set_rs.remove(rs_tutup)
@@ -36,8 +38,8 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
             for tanggal, rs_data in data_pasien.items():
                 if rs_tutup in rs_data:
                     pasien_pindah = rs_data[rs_tutup]['jumlah_pasien']
-                    rumah_sakit_lain = [rs for rs in rs_data.keys() if rs != rs_tutup]
-                    
+                    rumah_sakit_lain = [rs for rs in set_rs if rs in rs_data and rs != rs_tutup]
+
                     if rumah_sakit_lain:
                         tambahan_pasien_per_rs = pasien_pindah // len(rumah_sakit_lain)
                         sisa_pasien = pasien_pindah % len(rumah_sakit_lain)
@@ -47,7 +49,7 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
                             if idx < sisa_pasien:
                                 rs_data[rs]['jumlah_pasien'] += 1
 
-                    del rs_data[rs_tutup]
+                    del rs_data[rs_tutup]  # Hapus data rumah sakit yang ditutup
 
     total_pasien = {rs: 0 for rs in set_rs}
     for data_harian in data_pasien.values():
@@ -190,12 +192,13 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
         # Step 4: Hitung ulang rasio dan format dokter untuk display
         for info in rumah_sakit_info:
             info['Rasio Baru'] = round(info['Pasien'] / info['Jumlah Dokter'], 2)
-            info['Dokter'] = ', '.join([d['Nama'] for d in info['Dokter_List']])
+            info['Dokter'] = ', '.join([str(d['Nama']) for d in info['Dokter_List']])
 
         # Update hasil hari ini
         for info in rumah_sakit_info:
             info['Rasio Baru'] = round(info['Pasien'] / info['Jumlah Dokter'], 2) if info['Jumlah Dokter'] > 0 else 0
-            info['Dokter'] = ', '.join([d['Nama'] for d in info['Dokter_List']])
+            info['Dokter'] = ', '.join([str(d['Nama']) for d in info['Dokter_List']])
+
 
         # Step 5: Tambahkan rekap spesialisasi per tanggal (per dokter)
         semua_spesialisasi = set(rs_to_spesialisasi.values())
