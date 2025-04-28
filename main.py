@@ -24,6 +24,7 @@ edited_df = st.data_editor(df_edit, num_rows="dynamic")
 
 # Save Button
 if st.button("💾 Simpan Perubahan"):
+    edited_df = edited_df.dropna(how='all')  # drop baris yang semua kolomnya NaN
     edited_df.to_csv(file_to_edit, index=False)
     st.success(f"Perubahan pada `{os.path.basename(file_to_edit)}` berhasil disimpan.")
 
@@ -100,7 +101,15 @@ if selected_tanggal:
         "RS": row["RS"],
         "Dokter": row["Dokter"],
         "Jumlah Dokter": row["Jumlah Dokter"],
-        "Rasio Baru": row["Rasio Baru"]
+        "Rasio Baru": row["Rasio Baru"],
+        "Fuzzy Dominan": max({
+            'Under Berat': row['Under Berat'],
+            'Under Ringan': row['Under Ringan'],
+            'Optimal': row['Optimal'],
+            'Over Ringan': row['Over Ringan'],
+            'Over Berat': row['Over Berat']
+        }, key=lambda x: row[x])  # Menambahkan kolom Fuzzy Dominan
+
     } for row in data["jadwal"]]))
 
     # Tabel Detail Fuzzy

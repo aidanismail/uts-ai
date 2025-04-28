@@ -1,7 +1,6 @@
 import pandas as pd
 from fuzzy_logic import fuzzifikasi
 
-
 def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
     peserta_df = pd.read_csv("data/Data Dummy Peserta.csv")
     wahana_df = pd.read_csv("data/Data Dummy Wahana.csv")
@@ -35,10 +34,11 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
         if rs_tutup in set_rs:
             set_rs.remove(rs_tutup)
 
+            # Redistribusi pasien ke rumah sakit lain
             for tanggal, rs_data in data_pasien.items():
                 if rs_tutup in rs_data:
                     pasien_pindah = rs_data[rs_tutup]['jumlah_pasien']
-                    rumah_sakit_lain = [rs for rs in set_rs if rs in rs_data and rs != rs_tutup]
+                    rumah_sakit_lain = [rs for rs in rs_data.keys() if rs != rs_tutup]
 
                     if rumah_sakit_lain:
                         tambahan_pasien_per_rs = pasien_pindah // len(rumah_sakit_lain)
@@ -63,31 +63,26 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
     for day_offset, (tanggal, data_harian) in enumerate(data_pasien.items()):
         if day_offset % 10 == 0:
             dokter_to_spesialisasi = {id_d: set() for id_d, _ in list_dokter}
-        
+
         rumah_sakit_info = []
         rs_to_dokter = {rs: [] for rs in set_rs}   # ✅ RESET setiap hari
-        spesialisasi_snapshot = {id_d: dokter_to_spesialisasi[id_d].copy() for id_d in data_peserta}
 
-        rs_sorted_shifted = rs_sorted_by_pasien[day_offset % jumlah_rs:] + rs_sorted_by_pasien[:day_offset % jumlah_rs]
-        list_dokter_shifted = list_dokter[day_offset % len(list_dokter):] + list_dokter[:day_offset % len(list_dokter)]
-
-        for id_d, nama_d in list_dokter_shifted:
+        # Distribusi dokter ke rumah sakit yang tidak ditutup
+        for id_d, nama_d in list_dokter:
             rs_candidates = [
-                rs for rs in rs_sorted_shifted
-                if rs_to_spesialisasi[rs] not in spesialisasi_snapshot[id_d] and len(rs_to_dokter[rs]) < wahana_df[wahana_df['Nama Wahana'] == rs]['Kapasitas Peserta Optimal'].values[0]
+                rs for rs in set_rs
+                if rs_to_spesialisasi[rs] not in dokter_to_spesialisasi[id_d] and len(rs_to_dokter[rs]) < wahana_df[wahana_df['Nama Wahana'] == rs]['Kapasitas Peserta Optimal'].values[0]
             ]
 
             if rs_candidates:
                 chosen_rs = rs_candidates[0]
             else:
-                chosen_rs = min(rs_sorted_shifted, key=lambda rs: len(rs_to_dokter[rs]))
-            
+                chosen_rs = min(set_rs, key=lambda rs: len(rs_to_dokter[rs]))
+
             rs_to_dokter[chosen_rs].append({'ID': id_d, 'Nama': nama_d})
             dokter_to_spesialisasi[id_d].add(rs_to_spesialisasi[chosen_rs])
 
-
-        # === mulai penghitungan fuzzy dan redistribusi di dalam loop tanggal ===
-        # Step 1: Hitung fuzzy
+        # Hitung fuzzy setelah redistribusi
         for rs in set_rs:
             dokter_list = rs_to_dokter[rs]
             jumlah_dokter = len(dokter_list)
@@ -113,7 +108,7 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
                 "Aksi": "Tetap"
             })
 
-# Step 2: Redistribusi dokter dari RS underutilized
+        # Redistribusi dokter dari RS underutilized
         surplus_pool = []
         rs_underutilized = []
         rs_overutilized = sorted(
@@ -135,7 +130,7 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
             elif (info['Over Ringan'] + info['Over Berat']) > max(info['Optimal'], info['Under Berat'], info['Under Ringan']):
                 rs_overutilized.append(info['RS'])
 
-        # Step 3: Distribusi ke RS overutilized (jika ada dokter sisa)
+        # Distribusi ke RS overutilized (jika ada dokter sisa)
         for info in rumah_sakit_info:
             if info['RS'] in rs_overutilized and surplus_pool:
                 dokter_diberikan = surplus_pool.pop(0)
@@ -144,9 +139,8 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
                 info['Jumlah Dokter'] += 1
                 info['Aksi'] = "Tambah dokter (dari surplus)"
 
-        # Step 3.5: Jika masih ada surplus, berikan ke RS dengan rasio tertinggi
+        # Jika masih ada surplus, berikan ke RS dengan rasio tertinggi
         if surplus_pool:
-            # Urutkan berdasarkan rasio tertinggi (yang belum menerima dokter tambahan)
             calon_rs = sorted(
                 [info for info in rumah_sakit_info if info['Aksi'] == "Tetap"],
                 key=lambda x: x['Rasio'],
@@ -161,15 +155,13 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
                     info['Jumlah Dokter'] += 1
                     info['Aksi'] = "Tambah dokter (rasio tertinggi)"
 
-        # === Step 3.8: Reassignment berdasarkan kebutuhan spesialisasi ===
-        # Jika RS punya spesialisasi tapi tidak ada dokter yang pernah tangani spesialisasi itu
+        # Reassignment berdasarkan kebutuhan spesialisasi
         for info in rumah_sakit_info:
             spesialisasi_rs = rs_to_spesialisasi[info['RS']]
             assigned_dokter = info['Dokter_List']
 
             # Cek apakah RS ini butuh spesialisasi tapi belum punya dokter yang handle itu
             if not any(spesialisasi_rs in dokter_to_spesialisasi[d['ID']] for d in assigned_dokter):
-                # Cari dokter dari RS lain yang pernah handle spesialisasi itu
                 for donor_info in rumah_sakit_info:
                     if donor_info['RS'] == info['RS'] or donor_info['Jumlah Dokter'] <= 1:
                         continue
@@ -185,25 +177,22 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
                             info['Jumlah Dokter'] += 1
                             break
                     else:
-                        continue  # next donor_info
-                    break  # stop if reassign berhasil
+                        continue
+                    break
 
-
-        # Step 4: Hitung ulang rasio dan format dokter untuk display
+        # Hitung ulang rasio dan format dokter untuk display
         for info in rumah_sakit_info:
             info['Rasio Baru'] = round(info['Pasien'] / info['Jumlah Dokter'], 2)
             info['Dokter'] = ', '.join([str(d['Nama']) for d in info['Dokter_List']])
 
-        # Update hasil hari ini
         for info in rumah_sakit_info:
             info['Rasio Baru'] = round(info['Pasien'] / info['Jumlah Dokter'], 2) if info['Jumlah Dokter'] > 0 else 0
             info['Dokter'] = ', '.join([str(d['Nama']) for d in info['Dokter_List']])
 
-
-        # Step 5: Tambahkan rekap spesialisasi per tanggal (per dokter)
+        # Rekap spesialisasi per tanggal (per dokter)
         semua_spesialisasi = set(rs_to_spesialisasi.values())
         tabel_data = []
-        for id_d, sudah_dikerjakan in spesialisasi_snapshot.items():  # gunakan snapshot hari itu
+        for id_d, sudah_dikerjakan in dokter_to_spesialisasi.items():
             belum_dikerjakan = semua_spesialisasi - sudah_dikerjakan
             tabel_data.append({
                 "ID Dokter": id_d,
@@ -211,15 +200,11 @@ def jalankan_simulasi(jumlah_peserta_total, rs_tutup=None):
                 "Spesialisasi Dikerjakan": ', '.join(sorted(sudah_dikerjakan)),
                 "Belum Dikerjakan": ', '.join(sorted(belum_dikerjakan))
             })
-        dokter_per_rs = {
-            info['RS']: [d['Nama'] for d in info['Dokter_List']]
-            for info in rumah_sakit_info
-        }
 
         hasil_per_tanggal[tanggal] = {
             "jadwal": rumah_sakit_info,
-            "distribusi_dokter": dokter_per_rs,
-            "rekap_spesialisasi": tabel_data  # ✅ Tambahkan ini
+            "distribusi_dokter": {info['RS']: [d['Nama'] for d in info['Dokter_List']] for info in rumah_sakit_info},
+            "rekap_spesialisasi": tabel_data
         }
 
     return hasil_per_tanggal, dokter_to_spesialisasi, rs_to_spesialisasi, data_peserta
